@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.turbo/
+dist/
+*.log
+.env
+.env.*.local
+.env.local
+.vercel/
+coverage/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+infra/langfuse/.env

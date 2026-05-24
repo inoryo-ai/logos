@@ -1,0 +1,43 @@
+version: "3.8"
+
+# Langfuse self-host for Logos observability (ADR-001 Trace-First)
+# Run: docker compose up -d
+# UI: http://localhost:3000
+# Cost target: ~500 yen/month on hetzner/oracle free tier when migrated to cloud.
+
+services:
+  langfuse-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: ${LANGFUSE_DB_PASSWORD:-langfuse_dev_pw}
+      POSTGRES_DB: langfuse
+    volumes:
+      - langfuse_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  langfuse:
+    image: langfuse/langfuse:2
+    restart: unless-stopped
+    depends_on:
+      langfuse-db:
+        condition: service_healthy
+    ports:
+      - "3100:3000"
+    environment:
+      DATABASE_URL: postgresql://langfuse:${LANGFUSE_DB_PASSWORD:-langfuse_dev_pw}@langfuse-db:5432/langfuse
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:?set via .env}
+      SALT: ${LANGFUSE_SALT:?set via .env}
+      ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:?set via .env (64-char hex)}
+      NEXTAUTH_URL: http://localhost:3100
+      TELEMETRY_ENABLED: "false"
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "true"
+      AUTH_DISABLE_USERNAME_PASSWORD: "false"
+
+volumes:
+  langfuse_db_data:
